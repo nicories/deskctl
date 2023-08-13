@@ -1,0 +1,54 @@
+app_name: "desktop"
+
+mqtt:
+  server_host: "localhost"
+  server_port: 1883
+  keep_alive: 5
+  retain_last_will: true
+# optional user and password
+# user = "user"
+# password = "password"
+
+homeassistant:
+  autodiscover: true
+  # prefix in the default mqtt configuration, needs to be changed if it's different in homeassistant
+  autodiscover_prefix: "homeassistant"
+
+  device: &device
+    name: "desktop"
+    identifiers:
+      - "desktop-util"
+
+sway:
+  state_topic: &sway_state "desktop/sway/state"
+  command_topic: &sway_command "desktop/sway/command"
+  availability: &sway_availability
+    payload_available: "online"
+    payload_not_available: "offline"
+    topic: "desktop/sway/availability"
+  
+  workspaces_select:
+    name: "sway_workspaces"
+    object_id: "sway_workspaces"
+    unique_id: "sway_workspaces"
+    command_topic: *sway_command
+    state_topic: *sway_state
+    availability: *sway_availability
+    device: *device
+    
+
+
+pulseaudio:
+  availability: &pulse_availability
+    payload_available: "online"
+    payload_not_available: "offline"
+    topic: "desktop/pulse/availability"
+
+  # sink_select:
+  #   name: "pulse_sinks"
+  #   object_id: "pulse_sinks"
+  #   unique_id: "pulse_sinks"
+  #   command_topic: "pulse/sinks/select"
+  #   state_topic: "pulse/sinks/state"
+  #   availability: *pulse_availability
+  #   device: *device
