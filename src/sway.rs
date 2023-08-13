@@ -11,8 +11,8 @@ use crate::config::{ComponentSelect, ComponentSwitch, Config};
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 struct SwayState {
-    // outputs: Vec<Output>,
-    // workspaces: Vec<Workspace>,
+    outputs: Vec<Output>,
+    workspaces: Vec<Workspace>,
     current_workspace: String,
 }
 
@@ -24,8 +24,9 @@ async fn update_state(con: &mut Connection) -> SwayState {
         None => "".to_owned(),
     };
     SwayState {
-        // outputs: con.get_outputs().await.unwrap(),
+        outputs: con.get_outputs().await.unwrap(),
         current_workspace: current,
+        workspaces: con.get_workspaces().await.unwrap(),
     }
 }
 
