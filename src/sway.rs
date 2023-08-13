@@ -11,14 +11,21 @@ use crate::config::{ComponentSelect, ComponentSwitch, Config};
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 struct SwayState {
-    outputs: Vec<Output>,
-    workspaces: Vec<Workspace>,
+    // outputs: Vec<Output>,
+    // workspaces: Vec<Workspace>,
+    current_workspace: String,
 }
 
 async fn update_state(con: &mut Connection) -> SwayState {
+    let workspaces = con.get_workspaces().await.unwrap();
+    let focused_workspace = workspaces.iter().filter(|w| w.focused).last();
+    let current = match focused_workspace {
+        Some(w) => w.name.clone(),
+        None => "".to_owned(),
+    };
     SwayState {
-        outputs: con.get_outputs().await.unwrap(),
-        workspaces: con.get_workspaces().await.unwrap(),
+        // outputs: con.get_outputs().await.unwrap(),
+        current_workspace: current,
     }
 }
 
@@ -64,16 +71,16 @@ pub async fn sway_state(client: AsyncClient, mut config: Config) -> Fallible<()>
     let mut events = Connection::new().await?.subscribe(subs).await?;
     let mut state = update_state(&mut connection).await;
     while let Some(event) = events.next().await {
-        // state = update_state(&mut connection).await;
-        // client
-        //     .publish(
-        //         &config.sway.state_topic,
-        //         QoS::AtLeastOnce,
-        //         false,
-        //         serde_json::to_string(&state).unwrap(),
-        //     )
-        //     .await
-        //     .unwrap();
+        state = update_state(&mut connection).await;
+        client
+            .publish(
+                &config.sway.state_topic,
+                QoS::AtLeastOnce,
+                false,
+                serde_json::to_string(&state).unwrap(),
+            )
+            .await
+            .unwrap();
         println!("{:?}\n", event?)
     }
     Ok(())

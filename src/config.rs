@@ -32,34 +32,9 @@ pub struct ComponentSelect {
     pub common: ComponentCommon,
     #[serde(default = "Vec::new")]
     pub options: Vec<String>,
+    value_template: String,
 }
 
-impl ComponentSelect {
-    pub fn new(
-        name: String,
-        command_topic: String,
-        availability: ComponentAvailability,
-        state_topic: String,
-        object_id: String,
-        unique_id: String,
-        device: HomeAssistantDevice,
-        options: Vec<String>,
-    ) -> Self {
-        let common = ComponentCommon {
-            name,
-            object_id,
-            unique_id,
-            device,
-        };
-        Self {
-            command_topic,
-            availability,
-            state_topic,
-            common,
-            options,
-        }
-    }
-}
 impl HomeAssistantComponent for ComponentSelect {
     fn component_str(&self) -> &str {
         "select"
