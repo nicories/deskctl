@@ -47,38 +47,68 @@ pub async fn sway_state(client: AsyncClient, mut config: Config) -> Fallible<()>
     // auto discover
     for output in connection.get_outputs().await.unwrap() {
         // let select = ComponentSwitch { common: todo!() };
-    }
-    {
-        let workspaces: Vec<String> = connection
-            .get_workspaces()
-            .await
-            .unwrap()
-            .iter()
-            .map(|w| w.name.clone())
-            .collect();
-        config.sway.workspaces_select.options = workspaces;
-        let topic = config.get_autodiscover_topic(&config.sway.workspaces_select);
+        let switch = config.build_switch(
+            config.sway.outputs_command_topic.clone(),
+            config.sway.outputs_state_topic.clone(),
+            config.sway.availability.clone(),
+            output.name.clone(),
+            output.name.clone(),
+            output.name.clone(),
+            "{{ 'ON' if this.attributes.dpms else 'OFF' }}".to_owned(),
+            "{{ value_json | selectattr('name', 'equalto', name) | first | tojson }}".to_owned(),
+        );
+        let topic = config.get_autodiscover_topic(&switch);
         client
             .publish(
                 topic,
                 QoS::AtLeastOnce,
                 false,
-                serde_json::to_string(&config.sway.workspaces_select).unwrap(),
+                serde_json::to_string(&switch).unwrap(),
             )
             .await
             .unwrap();
+    }
+    {
+        // let workspaces: Vec<String> = connection
+        //     .get_workspaces()
+        //     .await
+        //     .unwrap()
+        //     .iter()
+        //     .map(|w| w.name.clone())
+        //     .collect();
+        // config.sway.workspaces_select.options = workspaces;
+        // let topic = config.get_autodiscover_topic(&config.sway.workspaces_select);
+        // client
+        //     .publish(
+        //         topic,
+        //         QoS::AtLeastOnce,
+        //         false,
+        //         serde_json::to_string(&config.sway.workspaces_select).unwrap(),
+        //     )
+        //     .await
+        //     .unwrap();
     }
 
     let mut events = Connection::new().await?.subscribe(subs).await?;
     let mut state = update_state(&mut connection).await;
     while let Some(event) = events.next().await {
         state = update_state(&mut connection).await;
+        let output_state = connection.get_outputs().await.unwrap();
         client
             .publish(
                 &config.sway.state_topic,
                 QoS::AtLeastOnce,
                 false,
                 serde_json::to_string(&state).unwrap(),
+            )
+            .await
+            .unwrap();
+        client
+            .publish(
+                &config.sway.outputs_state_topic,
+                QoS::AtLeastOnce,
+                false,
+                serde_json::to_string(&output_state).unwrap(),
             )
             .await
             .unwrap();
@@ -92,7 +122,7 @@ pub async fn sway_run() -> Fallible<()> {
     let mut mqttoptions =
         MqttOptions::new("test-1", &config.mqtt.server_host, config.mqtt.server_port);
     mqttoptions.set_keep_alive(Duration::from_secs(config.mqtt.keep_alive));
-    // offline message
+    // last will offline message
     mqttoptions.set_last_will(LastWill::new(
         &config.sway.availability.topic,
         config.sway.availability.payload_not_available.clone(),

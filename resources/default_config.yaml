@@ -20,13 +20,15 @@ homeassistant:
       - "desktop-util"
 
 sway:
+  outputs_state_topic: "desktop/sway_outputs/state"
+  outputs_command_topic: "desktop/sway_outputs/command"
   state_topic: &sway_state "desktop/sway/state"
   command_topic: &sway_command "desktop/sway/command"
   availability: &sway_availability
     payload_available: "online"
     payload_not_available: "offline"
     topic: "desktop/sway/availability"
-  
+
   workspaces_select:
     name: "sway_workspaces"
     object_id: "sway_workspaces"
@@ -37,6 +39,8 @@ sway:
     state_topic: *sway_state
     availability: *sway_availability
     device: *device
+    json_attributes_topic: ""
+    json_attributes_template: ""
     
 
 

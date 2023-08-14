@@ -12,8 +12,23 @@ pub struct ComponentAvailability {
 
 #[derive(Deserialize, Serialize, Clone)]
 pub struct ComponentSwitch {
+    pub command_topic: String,
+    pub availability: ComponentAvailability,
+    pub state_topic: String,
     #[serde(flatten)]
     pub common: ComponentCommon,
+    value_template: String,
+    json_attributes_topic: String,
+    json_attributes_template: String,
+}
+impl HomeAssistantComponent for ComponentSwitch {
+    fn component_str(&self) -> &str {
+        "switch"
+    }
+
+    fn object_id(&self) -> &str {
+        &self.common.object_id
+    }
 }
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -33,6 +48,8 @@ pub struct ComponentSelect {
     #[serde(default = "Vec::new")]
     pub options: Vec<String>,
     value_template: String,
+    json_attributes_topic: String,
+    json_attributes_template: String,
 }
 
 impl HomeAssistantComponent for ComponentSelect {
@@ -101,6 +118,8 @@ pub struct PulseAudioConfig {
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct SwayConfig {
+    pub outputs_state_topic: String,
+    pub outputs_command_topic: String,
     pub state_topic: String,
     pub command_topic: String,
     pub availability: ComponentAvailability,
@@ -130,9 +149,65 @@ static CONFIG_STR: &str = include_str!(concat!(
 impl Config {
     pub fn new() -> Self {
         // construct config and add it to the template environment
-        let config: Config = serde_yaml::from_str(CONFIG_STR).expect("toml default config");
-
+        let config: Config = serde_yaml::from_str(CONFIG_STR).expect("default config");
         config
+    }
+
+    pub fn build_switch(
+        &self,
+        command_topic: String,
+        state_topic: String,
+        availability: ComponentAvailability,
+        name: String,
+        object_id: String,
+        unique_id: String,
+        value_template: String,
+        json_attributes_template: String,
+    ) -> ComponentSwitch {
+        let common = ComponentCommon {
+            name,
+            object_id,
+            unique_id,
+            device: self.homeassistant.device.clone(),
+        };
+        ComponentSwitch {
+            command_topic,
+            availability,
+            state_topic: state_topic.clone(),
+            common,
+            value_template,
+            json_attributes_topic: state_topic,
+            json_attributes_template,
+        }
+    }
+    pub fn build_select(
+        &self,
+        options: Vec<String>,
+        command_topic: String,
+        state_topic: String,
+        availability: ComponentAvailability,
+        name: String,
+        object_id: String,
+        unique_id: String,
+        value_template: String,
+        json_attributes_template: String,
+    ) -> ComponentSelect {
+        let common = ComponentCommon {
+            name,
+            object_id,
+            unique_id,
+            device: self.homeassistant.device.clone(),
+        };
+        ComponentSelect {
+            command_topic,
+            state_topic: state_topic.clone(),
+            availability,
+            common,
+            options,
+            value_template,
+            json_attributes_template,
+            json_attributes_topic: state_topic,
+        }
     }
     pub fn get_autodiscover_topic(&self, component: &dyn HomeAssistantComponent) -> String {
         let component_str = component.component_str();
