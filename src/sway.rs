@@ -119,18 +119,8 @@ pub async fn sway_state(client: AsyncClient, mut config: Config) -> Fallible<()>
 
 pub async fn sway_run() -> Fallible<()> {
     let mut config = Config::new();
-    let mut mqttoptions =
-        MqttOptions::new("test-1", &config.mqtt.server_host, config.mqtt.server_port);
-    mqttoptions.set_keep_alive(Duration::from_secs(config.mqtt.keep_alive));
-    // last will offline message
-    mqttoptions.set_last_will(LastWill::new(
-        &config.sway.availability.topic,
-        config.sway.availability.payload_not_available.clone(),
-        QoS::AtLeastOnce,
-        config.mqtt.retain_last_will,
-    ));
 
-    let (client, mut eventloop) = AsyncClient::new(mqttoptions, 10);
+    let (client, mut eventloop) = config.get_client(&config.sway.availability.topic);
     let config_copy = config.clone();
     // online message
     client

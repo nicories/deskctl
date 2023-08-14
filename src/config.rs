@@ -1,4 +1,11 @@
+use std::time::Duration;
+
 use env_logger::Env;
+use rumqttc::AsyncClient;
+use rumqttc::EventLoop;
+use rumqttc::LastWill;
+use rumqttc::MqttOptions;
+use rumqttc::QoS;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -151,6 +158,21 @@ impl Config {
         // construct config and add it to the template environment
         let config: Config = serde_yaml::from_str(CONFIG_STR).expect("default config");
         config
+    }
+
+    pub fn get_client(&self, last_will_topic: &str) -> (AsyncClient, EventLoop) {
+        let mut mqttoptions =
+            MqttOptions::new("test-1", &self.mqtt.server_host, self.mqtt.server_port);
+        mqttoptions.set_keep_alive(Duration::from_secs(self.mqtt.keep_alive));
+        // last will offline message
+        mqttoptions.set_last_will(LastWill::new(
+            last_will_topic,
+            self.sway.availability.payload_not_available.clone(),
+            QoS::AtLeastOnce,
+            self.mqtt.retain_last_will,
+        ));
+
+        AsyncClient::new(mqttoptions, 10)
     }
 
     pub fn build_switch(
