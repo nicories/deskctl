@@ -29,24 +29,8 @@ async fn update_state(con: &mut Connection) -> SwayState {
         workspaces: con.get_workspaces().await.unwrap(),
     }
 }
-
-// outputs the current state of sway to the topic
-pub async fn sway_state(client: AsyncClient, mut config: Config) -> Fallible<()> {
-    let subs = [
-        EventType::Workspace,
-        EventType::Window,
-        // EventType::Input,
-        // EventType::Tick,
-        // EventType::Shutdown,
-        // EventType::Mode,
-        // EventType::BarStateUpdate,
-        // EventType::BarConfigUpdate,
-        // EventType::Binding,
-    ];
-    let mut connection = Connection::new().await?;
-    // auto discover
-    for output in connection.get_outputs().await.unwrap() {
-        // let select = ComponentSwitch { common: todo!() };
+async fn autodiscover(con: &mut Connection, config: &Config, client: &AsyncClient) -> Fallible<()> {
+    for output in con.get_outputs().await.unwrap() {
         let switch = config.build_switch(
             config.sway.outputs_command_topic.clone(),
             config.sway.outputs_state_topic.clone(),
@@ -54,8 +38,8 @@ pub async fn sway_state(client: AsyncClient, mut config: Config) -> Fallible<()>
             output.name.clone(),
             output.name.clone(),
             output.name.clone(),
-            "{{ 'ON' if this.attributes.dpms else 'OFF' }}".to_owned(),
-            "{{ value_json | selectattr('name', 'equalto', name) | first | tojson }}".to_owned(),
+            config.sway.outputs_value_template.clone(),
+            config.sway.outputs_attributes_template.clone(),
         );
         let topic = config.get_autodiscover_topic(&switch);
         client
@@ -88,12 +72,32 @@ pub async fn sway_state(client: AsyncClient, mut config: Config) -> Fallible<()>
         //     .await
         //     .unwrap();
     }
+    Ok(())
+}
+
+// outputs the current state of sway to the topic
+pub async fn sway_state(client: AsyncClient, config: Config) -> Fallible<()> {
+    let subs = [
+        EventType::Workspace,
+        // EventType::Output, TODO: not implemented yet in swayipc
+        EventType::Window,
+        // EventType::Input,
+        // EventType::Tick,
+        // EventType::Shutdown,
+        // EventType::Mode,
+        // EventType::BarStateUpdate,
+        // EventType::BarConfigUpdate,
+        // EventType::Binding,
+    ];
+    let mut connection = Connection::new().await?;
 
     let mut events = Connection::new().await?.subscribe(subs).await?;
     let mut state = update_state(&mut connection).await;
     while let Some(event) = events.next().await {
+        if let Ok(e) = event {
+            dbg!(e);
+        }
         state = update_state(&mut connection).await;
-        let output_state = connection.get_outputs().await.unwrap();
         client
             .publish(
                 &config.sway.state_topic,
@@ -103,26 +107,35 @@ pub async fn sway_state(client: AsyncClient, mut config: Config) -> Fallible<()>
             )
             .await
             .unwrap();
+        let output_state = connection.get_outputs().await.unwrap();
         client
             .publish(
                 &config.sway.outputs_state_topic,
                 QoS::AtLeastOnce,
-                false,
+                true, // retain this to avoid errors on startup
                 serde_json::to_string(&output_state).unwrap(),
             )
             .await
             .unwrap();
-        println!("{:?}\n", event?)
     }
     Ok(())
 }
 
 pub async fn sway_run() -> Fallible<()> {
-    let mut config = Config::new();
+    let config = Config::new();
 
-    let (client, mut eventloop) = config.get_client(&config.sway.availability.topic);
-    let config_copy = config.clone();
-    // online message
+    let (client, mut eventloop) = config.get_client(&config.sway.availability);
+    let (config_state, client_state) = (config.clone(), client.clone());
+    // auto discover first to add the entities to home-assistant
+    let mut connection = Connection::new().await?;
+    autodiscover(&mut connection, &config, &client).await?;
+
+    // then start the task to continuously update and publish the state in the background
+    task::spawn(async move {
+        sway_state(client_state, config_state).await.unwrap();
+    });
+
+    // then output the online message
     client
         .publish(
             &config.sway.availability.topic,
@@ -132,11 +145,6 @@ pub async fn sway_run() -> Fallible<()> {
         )
         .await
         .unwrap();
-
-    task::spawn(async move {
-        sway_state(client, config_copy).await.unwrap();
-    });
-    let mut connection = Connection::new().await?;
 
     // loop
     while let Ok(event) = eventloop.poll().await {

@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use env_logger::Env;
 use rumqttc::AsyncClient;
 use rumqttc::EventLoop;
 use rumqttc::LastWill;
@@ -8,6 +7,11 @@ use rumqttc::MqttOptions;
 use rumqttc::QoS;
 use serde::Deserialize;
 use serde::Serialize;
+
+static CONFIG_STR: &str = include_str!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/resources/default_config.yaml"
+));
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(deny_unknown_fields)]
@@ -127,6 +131,9 @@ pub struct PulseAudioConfig {
 pub struct SwayConfig {
     pub outputs_state_topic: String,
     pub outputs_command_topic: String,
+    pub outputs_attributes_topic: String,
+    pub outputs_attributes_template: String,
+    pub outputs_value_template: String,
     pub state_topic: String,
     pub command_topic: String,
     pub availability: ComponentAvailability,
@@ -136,6 +143,7 @@ pub struct SwayConfig {
 #[serde(deny_unknown_fields)]
 pub struct Config {
     pub app_name: String,
+    pub queue_size: usize,
     pub mqtt: MqttConfig,
     pub homeassistant: HomeAssistantConfig,
     pub pulseaudio: PulseAudioConfig,
@@ -148,11 +156,6 @@ pub trait HomeAssistantComponent {
     fn object_id(&self) -> &str;
 }
 
-static CONFIG_STR: &str = include_str!(concat!(
-    env!("CARGO_MANIFEST_DIR"),
-    "/resources/default_config.yaml"
-));
-
 impl Config {
     pub fn new() -> Self {
         // construct config and add it to the template environment
@@ -160,19 +163,18 @@ impl Config {
         config
     }
 
-    pub fn get_client(&self, last_will_topic: &str) -> (AsyncClient, EventLoop) {
-        let mut mqttoptions =
-            MqttOptions::new("test-1", &self.mqtt.server_host, self.mqtt.server_port);
-        mqttoptions.set_keep_alive(Duration::from_secs(self.mqtt.keep_alive));
-        // last will offline message
-        mqttoptions.set_last_will(LastWill::new(
-            last_will_topic,
-            self.sway.availability.payload_not_available.clone(),
-            QoS::AtLeastOnce,
-            self.mqtt.retain_last_will,
-        ));
+    pub fn get_client(&self, availability: &ComponentAvailability) -> (AsyncClient, EventLoop) {
+        let mqttoptions = MqttOptions::new("test-1", &self.mqtt.server_host, self.mqtt.server_port)
+            .set_keep_alive(Duration::from_secs(self.mqtt.keep_alive))
+            .set_last_will(LastWill::new(
+                &availability.topic,
+                availability.payload_not_available.clone(),
+                QoS::AtLeastOnce,
+                true, // retain so that homeassistant knows this entity is offline even after restarting
+            ))
+            .to_owned();
 
-        AsyncClient::new(mqttoptions, 10)
+        AsyncClient::new(mqttoptions, self.queue_size)
     }
 
     pub fn build_switch(

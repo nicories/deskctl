@@ -1,5 +1,7 @@
 app_name: "desktop"
 
+queue_size: 10 # size of the rx/tx buffer for each client
+
 mqtt:
   server_host: "localhost"
   server_port: 1883
@@ -14,14 +16,20 @@ homeassistant:
   # prefix in the default mqtt configuration, needs to be changed if it's different in homeassistant
   autodiscover_prefix: "homeassistant"
 
+  # all entities will belong to this device
   device: &device
     name: "desktop"
     identifiers:
       - "desktop-util"
 
 sway:
-  outputs_state_topic: "desktop/sway_outputs/state"
+  # each output uses the same topics
   outputs_command_topic: "desktop/sway_outputs/command"
+  outputs_state_topic: "desktop/sway_outputs/state"
+  outputs_attributes_topic: "desktop/sway_outputs/state"
+  outputs_value_template: "{{ 'ON' if (value_json | selectattr('name', 'equalto', name) | first).dpms else 'OFF' }}"
+  outputs_attributes_template: "{{ value_json | selectattr('name', 'equalto', name) | first | tojson }}"
+
   state_topic: &sway_state "desktop/sway/state"
   command_topic: &sway_command "desktop/sway/command"
   availability: &sway_availability
