@@ -13,6 +13,12 @@ static CONFIG_STR: &str = include_str!(concat!(
     "/resources/default_config.yaml"
 ));
 
+pub trait MqttModuleConfig {
+    fn client_id(&self) -> &str;
+    fn last_will_topic(&self) -> &str;
+    fn last_will_payload(&self) -> String;
+}
+
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct ComponentAvailability {
@@ -123,12 +129,28 @@ pub struct ScriptConfig {
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct PulseAudioConfig {
-    // pub sink_select: ComponentSelect,
+    pub mqtt_name: String,
+    pub state_topic: String,
+    pub command_topic: String,
     pub availability: ComponentAvailability,
+}
+impl MqttModuleConfig for PulseAudioConfig {
+    fn client_id(&self) -> &str {
+        &self.mqtt_name
+    }
+
+    fn last_will_topic(&self) -> &str {
+        &self.availability.topic
+    }
+
+    fn last_will_payload(&self) -> String {
+        self.availability.payload_not_available.clone()
+    }
 }
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct SwayConfig {
+    pub mqtt_name: String,
     pub outputs_state_topic: String,
     pub outputs_command_topic: String,
     pub outputs_attributes_topic: String,
@@ -138,6 +160,19 @@ pub struct SwayConfig {
     pub command_topic: String,
     pub availability: ComponentAvailability,
     pub workspaces_select: ComponentSelect,
+}
+impl MqttModuleConfig for SwayConfig {
+    fn client_id(&self) -> &str {
+        &self.mqtt_name
+    }
+
+    fn last_will_topic(&self) -> &str {
+        &self.availability.topic
+    }
+
+    fn last_will_payload(&self) -> String {
+        self.availability.payload_not_available.clone()
+    }
 }
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(deny_unknown_fields)]
@@ -163,16 +198,26 @@ impl Config {
         config
     }
 
-    pub fn get_client(&self, availability: &ComponentAvailability) -> (AsyncClient, EventLoop) {
-        let mqttoptions = MqttOptions::new("test-1", &self.mqtt.server_host, self.mqtt.server_port)
-            .set_keep_alive(Duration::from_secs(self.mqtt.keep_alive))
-            .set_last_will(LastWill::new(
-                &availability.topic,
-                availability.payload_not_available.clone(),
-                QoS::AtLeastOnce,
-                true, // retain so that homeassistant knows this entity is offline even after restarting
-            ))
-            .to_owned();
+    pub fn get_client(&self, mqtt_config: &dyn MqttModuleConfig) -> (AsyncClient, EventLoop) {
+        log::debug!(
+            "Connecting to mqtt broker at {}:{} with client_id: {}",
+            self.mqtt.server_host,
+            self.mqtt.server_port,
+            mqtt_config.client_id()
+        );
+        let mqttoptions = MqttOptions::new(
+            mqtt_config.client_id(),
+            &self.mqtt.server_host,
+            self.mqtt.server_port,
+        )
+        .set_keep_alive(Duration::from_secs(self.mqtt.keep_alive))
+        .set_last_will(LastWill::new(
+            mqtt_config.last_will_topic(),
+            mqtt_config.last_will_payload(),
+            QoS::AtLeastOnce,
+            true, // retain so that homeassistant knows this entity is offline even after restarting
+        ))
+        .to_owned();
 
         AsyncClient::new(mqttoptions, self.queue_size)
     }

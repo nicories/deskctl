@@ -23,6 +23,8 @@ homeassistant:
       - "desktop-util"
 
 sway:
+  mqtt_name: "desktop_sway"
+
   # each output uses the same topics
   outputs_command_topic: "desktop/sway_outputs/command"
   outputs_state_topic: "desktop/sway_outputs/state"
@@ -49,10 +51,12 @@ sway:
     device: *device
     json_attributes_topic: ""
     json_attributes_template: ""
-    
-
 
 pulseaudio:
+  mqtt_name: "desktop_pulse"
+  state_topic: "desktop/pulse/state"
+  command_topic: "desktop/pulse/command"
+
   availability: &pulse_availability
     payload_available: "online"
     payload_not_available: "offline"

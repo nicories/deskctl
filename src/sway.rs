@@ -9,6 +9,13 @@ use swayipc_async::{Connection, EventType, Fallible};
 
 use crate::config::{ComponentSelect, ComponentSwitch, Config};
 
+struct SwayModule {
+
+}
+impl SwayModule {
+
+}
+
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 struct SwayState {
     outputs: Vec<Output>,
@@ -124,7 +131,7 @@ pub async fn sway_state(client: AsyncClient, config: Config) -> Fallible<()> {
 pub async fn sway_run() -> Fallible<()> {
     let config = Config::new();
 
-    let (client, mut eventloop) = config.get_client(&config.sway.availability);
+    let (client, mut eventloop) = config.get_client(&config.sway);
     let (config_state, client_state) = (config.clone(), client.clone());
     // auto discover first to add the entities to home-assistant
     let mut connection = Connection::new().await?;
