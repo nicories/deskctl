@@ -62,7 +62,6 @@ pub struct ComponentSelect {
     pub state_topic: String,
     #[serde(flatten)]
     pub common: ComponentCommon,
-    #[serde(default = "Vec::new")]
     pub options: Vec<String>,
     pub value_template: String,
     pub json_attributes_topic: String,
