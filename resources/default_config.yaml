@@ -37,18 +37,18 @@ sway:
     payload_not_available: "offline"
     topic: "desktop/sway/availability"
 
-  workspaces_select:
-    name: "sway_workspaces"
-    object_id: "sway_workspaces"
-    unique_id: "sway_workspaces"
-    # value_template: "{{ (value_json.workspaces | selectattr('focused', 'equalto', true) | first).name }}"
-    value_template: "{{ value_json.current_workspace }}"
-    command_topic: *sway_command
-    state_topic: *sway_state
-    availability: *sway_availability
-    device: *device
-    json_attributes_topic: ""
-    json_attributes_template: ""
+  # workspaces_select:
+  #   name: "sway_workspaces"
+  #   object_id: "sway_workspaces"
+  #   unique_id: "sway_workspaces"
+  #   # value_template: "{{ (value_json.workspaces | selectattr('focused', 'equalto', true) | first).name }}"
+  #   value_template: "{{ value_json.current_workspace }}"
+  #   command_topic: *sway_command
+  #   state_topic: *sway_state
+  #   availability: *sway_availability
+  #   device: *device
+  #   json_attributes_topic: ""
+  #   json_attributes_template: ""
 
 pulseaudio:
   mqtt_name: "desktop_pulse"

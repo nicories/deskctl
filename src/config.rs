@@ -83,7 +83,6 @@ pub struct SwayConfig {
     pub state_topic: String,
     pub command_topic: String,
     pub availability: ComponentAvailability,
-    pub workspaces_select: ComponentSelect,
 }
 impl MqttModuleConfig for SwayConfig {
     fn client_id(&self) -> &str {
@@ -156,10 +155,10 @@ impl Config {
             object_id,
             unique_id,
             device: self.homeassistant.device.clone(),
+            availability
         };
         ComponentSwitch {
             command_topic,
-            availability,
             state_topic: state_topic.clone(),
             common,
             value_template,
@@ -184,11 +183,11 @@ impl Config {
             object_id,
             unique_id,
             device: self.homeassistant.device.clone(),
+            availability,
         };
         ComponentSelect {
             command_topic,
             state_topic: state_topic.clone(),
-            availability,
             common,
             options,
             value_template,

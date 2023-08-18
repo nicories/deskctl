@@ -13,6 +13,7 @@ pub struct ComponentCommon {
     pub object_id: String,
     pub unique_id: String,
     pub device: HomeAssistantDevice,
+    pub availability: ComponentAvailability,
 }
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -23,10 +24,9 @@ pub struct ComponentAvailability {
     pub topic: String,
 }
 
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Serialize, Clone)]
 pub struct ComponentSwitch {
     pub command_topic: String,
-    pub availability: ComponentAvailability,
     pub state_topic: String,
     #[serde(flatten)]
     pub common: ComponentCommon,
@@ -51,10 +51,9 @@ pub struct HomeAssistantDevice {
     identifiers: Vec<String>,
 }
 
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Serialize, Clone)]
 pub struct ComponentSelect {
     pub command_topic: String,
-    pub availability: ComponentAvailability,
     pub state_topic: String,
     #[serde(flatten)]
     pub common: ComponentCommon,
