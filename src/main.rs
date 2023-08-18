@@ -8,6 +8,7 @@ use std::time::Duration;
 use swayipc_async::{Connection, EventType, Fallible};
 
 mod config;
+mod homeassistant;
 mod pulseaudio;
 mod sway;
 

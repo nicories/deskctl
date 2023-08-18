@@ -12,7 +12,7 @@ use pulsectl::Pulseaudio;
 const CLIENT_NAME_CMD: &str = "desktop-cmd";
 const CLIENT_NAME_STATE: &str = "desktop-state";
 
-use crate::config::{ComponentSelect, ComponentSwitch, Config};
+use crate::config::Config;
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 struct PulseState {

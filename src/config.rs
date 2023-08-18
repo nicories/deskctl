@@ -8,6 +8,13 @@ use rumqttc::QoS;
 use serde::Deserialize;
 use serde::Serialize;
 
+use crate::homeassistant::ComponentAvailability;
+use crate::homeassistant::ComponentCommon;
+use crate::homeassistant::ComponentSelect;
+use crate::homeassistant::ComponentSwitch;
+use crate::homeassistant::HomeAssistantComponent;
+use crate::homeassistant::HomeAssistantDevice;
+
 static CONFIG_STR: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/resources/default_config.yaml"
@@ -21,65 +28,6 @@ pub trait MqttModuleConfig {
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(deny_unknown_fields)]
-pub struct ComponentAvailability {
-    pub payload_available: String,
-    pub payload_not_available: String,
-    pub topic: String,
-}
-
-#[derive(Deserialize, Serialize, Clone)]
-pub struct ComponentSwitch {
-    pub command_topic: String,
-    pub availability: ComponentAvailability,
-    pub state_topic: String,
-    #[serde(flatten)]
-    pub common: ComponentCommon,
-    value_template: String,
-    json_attributes_topic: String,
-    json_attributes_template: String,
-}
-impl HomeAssistantComponent for ComponentSwitch {
-    fn component_str(&self) -> &str {
-        "switch"
-    }
-
-    fn object_id(&self) -> &str {
-        &self.common.object_id
-    }
-}
-
-#[derive(Deserialize, Serialize, Clone)]
-#[serde(deny_unknown_fields)]
-pub struct HomeAssistantDevice {
-    name: String,
-    identifiers: Vec<String>,
-}
-
-#[derive(Deserialize, Serialize, Clone)]
-pub struct ComponentSelect {
-    pub command_topic: String,
-    pub availability: ComponentAvailability,
-    pub state_topic: String,
-    #[serde(flatten)]
-    pub common: ComponentCommon,
-    #[serde(default = "Vec::new")]
-    pub options: Vec<String>,
-    value_template: String,
-    json_attributes_topic: String,
-    json_attributes_template: String,
-}
-
-impl HomeAssistantComponent for ComponentSelect {
-    fn component_str(&self) -> &str {
-        "select"
-    }
-    fn object_id(&self) -> &str {
-        &self.common.object_id
-    }
-}
-
-#[derive(Deserialize, Serialize, Clone)]
-#[serde(deny_unknown_fields)]
 pub struct MqttConfig {
     pub server_host: String,
     pub server_port: u16,
@@ -88,30 +36,7 @@ pub struct MqttConfig {
     pub password: Option<String>,
     pub retain_last_will: bool,
 }
-// collection of fields common to all components
-#[derive(Deserialize, Serialize, Clone)]
-pub struct ComponentCommon {
-    pub name: String,
-    pub object_id: String,
-    pub unique_id: String,
-    pub device: HomeAssistantDevice,
-}
 
-impl ComponentCommon {
-    pub fn new(
-        name: String,
-        object_id: String,
-        unique_id: String,
-        device: HomeAssistantDevice,
-    ) -> Self {
-        Self {
-            name,
-            object_id,
-            unique_id,
-            device,
-        }
-    }
-}
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(deny_unknown_fields)]
 pub struct HomeAssistantConfig {
@@ -184,11 +109,6 @@ pub struct Config {
     pub pulseaudio: PulseAudioConfig,
     pub sway: SwayConfig,
     // scripts: Vec<ScriptConfig>,
-}
-
-pub trait HomeAssistantComponent {
-    fn component_str(&self) -> &str;
-    fn object_id(&self) -> &str;
 }
 
 impl Config {

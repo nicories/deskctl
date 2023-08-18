@@ -7,14 +7,10 @@ use std::error::Error;
 use std::time::Duration;
 use swayipc_async::{Connection, EventType, Fallible};
 
-use crate::config::{ComponentSelect, ComponentSwitch, Config};
+use crate::config::Config;
 
-struct SwayModule {
-
-}
-impl SwayModule {
-
-}
+struct SwayModule {}
+impl SwayModule {}
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 struct SwayState {
