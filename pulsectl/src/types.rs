@@ -4,9 +4,9 @@ use std::{collections::HashMap, string::FromUtf8Error};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PulseEvent {
-    index: u32,
-    event: String,
-    on: String,
+    pub index: u32,
+    pub event: String,
+    pub on: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

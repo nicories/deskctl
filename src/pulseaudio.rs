@@ -28,26 +28,28 @@ pub async fn pulse_state(client: AsyncClient, config: &Config) -> Fallible<()> {
     let stream = pulse.subscribe().await;
     pin_mut!(stream);
     while let Some(s) = stream.next().await {
-        log::debug!("Got pulseaudio event: {:?}", &s);
-        let sinks = pulse.list_sinks().await.unwrap();
-        let current_sink = pulse.get_default_sink().await.unwrap().name;
-        let current_volume = pulse.get_default_volume().await.unwrap().value_percent;
-        let state = PulseState {
-            current_sink,
-            current_volume,
-            sinks,
-        };
-        log::debug!("Publishing new state to {}", &config.pulseaudio.state_topic);
-        client
-            .publish(
-                &config.pulseaudio.state_topic,
-                QoS::AtLeastOnce,
-                false,
-                serde_json::to_string(&state).unwrap(),
-            )
-            .await
-            .unwrap();
-        log::debug!("Published new state");
+        if s.on == "sink" {
+            log::debug!("Got pulseaudio sink event: {:?}", &s);
+            let sinks = pulse.list_sinks().await.unwrap();
+            let current_sink = pulse.get_default_sink().await.unwrap().name;
+            let current_volume = pulse.get_default_volume().await.unwrap().value_percent;
+            let state = PulseState {
+                current_sink,
+                current_volume,
+                sinks,
+            };
+            log::debug!("Publishing new state to {}", &config.pulseaudio.state_topic);
+            client
+                .publish(
+                    &config.pulseaudio.state_topic,
+                    QoS::AtLeastOnce,
+                    false,
+                    serde_json::to_string(&state).unwrap(),
+                )
+                .await
+                .unwrap();
+            log::debug!("Published new state");
+        }
     }
     Ok(())
 }
