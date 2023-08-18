@@ -142,7 +142,6 @@ impl Config {
         state_topic: String,
         availability: ComponentAvailability,
         name: String,
-        object_id: String,
         unique_id: String,
         value_template: String,
         json_attributes_template: String,
@@ -151,7 +150,6 @@ impl Config {
     ) -> ComponentSwitch {
         let common = ComponentCommon {
             name,
-            object_id,
             unique_id,
             device: self.homeassistant.device.clone(),
             availability,
@@ -184,7 +182,6 @@ impl Config {
     ) -> ComponentSelect {
         let common = ComponentCommon {
             name,
-            object_id,
             unique_id,
             device: self.homeassistant.device.clone(),
             availability,

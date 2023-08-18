@@ -10,7 +10,6 @@ pub trait HomeAssistantComponent {
 #[derive(Deserialize, Serialize, Clone)]
 pub struct ComponentCommon {
     pub name: String,
-    pub object_id: String,
     pub unique_id: String,
     pub device: HomeAssistantDevice,
     pub availability: ComponentAvailability,
@@ -45,7 +44,7 @@ impl HomeAssistantComponent for ComponentSwitch {
     }
 
     fn object_id(&self) -> &str {
-        &self.common.object_id
+        &self.common.unique_id
     }
 }
 
@@ -73,6 +72,6 @@ impl HomeAssistantComponent for ComponentSelect {
         "select"
     }
     fn object_id(&self) -> &str {
-        &self.common.object_id
+        &self.common.unique_id
     }
 }

@@ -56,19 +56,24 @@ async fn autodiscover(con: &mut Connection, config: &Config, client: &AsyncClien
             let cmd_off = SwayCommand::OutputPowerOff {
                 output_name: output.name.clone(),
             };
+            let name = format!("{}_power", output.name);
+            let unique_id = name.clone();
             let switch = config.build_switch(
                 config.sway.command_topic.clone(),
                 config.sway.state_topic.clone(),
                 config.sway.availability.clone(),
-                output.name.clone(),
-                output.name.clone(),
-                output.name.clone(),
+                name,
+                unique_id,
                 format!(
-                    "{{{{ '{on}' if (value_json.outputs[name]).dpms == true else '{off}' }}}}",
+                    "{{{{ '{on}' if (value_json.outputs['{key}']).dpms == true else '{off}' }}}}",
                     on = &config.switch_on_value,
                     off = &config.switch_off_value,
+                    key = &output.name,
                 ),
-                format!("{{{{ value_json.outputs[name] | tojson }}}}"),
+                format!(
+                    "{{{{ value_json.outputs['{key}'] | tojson }}}}",
+                    key = &output.name
+                ),
                 serde_json::to_string(&cmd_on).unwrap(),
                 serde_json::to_string(&cmd_off).unwrap(),
             );
@@ -97,13 +102,16 @@ async fn autodiscover(con: &mut Connection, config: &Config, client: &AsyncClien
                 config.sway.availability.clone(),
                 format!("{}_enable", output.name),
                 output.name.clone(),
-                output.name.clone(),
                 format!(
-                    "{{{{ '{on}' if (value_json.outputs[name]).dpms == true else '{off}' }}}}",
+                    "{{{{ '{on}' if (value_json.outputs['{key}']).dpms == true else '{off}' }}}}",
                     on = &config.switch_on_value,
                     off = &config.switch_off_value,
+                    key = &output.name,
                 ),
-                format!("{{{{ value_json.outputs[name] | tojson }}}}"),
+                format!(
+                    "{{{{ value_json.outputs['{key}'] | tojson }}}}",
+                    key = &output.name
+                ),
                 serde_json::to_string(&cmd_on).unwrap(),
                 serde_json::to_string(&cmd_off).unwrap(),
             );
