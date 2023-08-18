@@ -3,8 +3,8 @@ use tokio::{task, time};
 
 use futures_util::stream::StreamExt;
 use rumqttc::{self, AsyncClient, LastWill, MqttOptions, QoS};
-use std::error::Error;
 use std::time::Duration;
+use std::{collections::HashMap, error::Error};
 use swayipc_async::{Connection, EventType, Fallible};
 
 use crate::config::Config;
@@ -14,7 +14,7 @@ impl SwayModule {}
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 struct SwayState {
-    outputs: Vec<Output>,
+    outputs: HashMap<String, Output>,
     workspaces: Vec<Workspace>,
     current_workspace: String,
 }
@@ -26,17 +26,24 @@ async fn update_state(con: &mut Connection) -> SwayState {
         Some(w) => w.name.clone(),
         None => "".to_owned(),
     };
+    let outputs = con.get_outputs().await.unwrap();
+    let map: HashMap<String, Output> = outputs
+        .iter()
+        .map(|o| (o.name.clone(), o.clone()))
+        .collect();
+    dbg!(&map);
     SwayState {
-        outputs: con.get_outputs().await.unwrap(),
+        outputs: map,
         current_workspace: current,
         workspaces: con.get_workspaces().await.unwrap(),
     }
 }
 async fn autodiscover(con: &mut Connection, config: &Config, client: &AsyncClient) -> Fallible<()> {
     for output in con.get_outputs().await.unwrap() {
+        let id = output.name.clone();
         let switch = config.build_switch(
             config.sway.outputs_command_topic.clone(),
-            config.sway.outputs_state_topic.clone(),
+            config.sway.state_topic.clone(),
             config.sway.availability.clone(),
             output.name.clone(),
             output.name.clone(),
@@ -107,16 +114,6 @@ pub async fn sway_state(client: AsyncClient, config: Config) -> Fallible<()> {
                 QoS::AtLeastOnce,
                 false,
                 serde_json::to_string(&state).unwrap(),
-            )
-            .await
-            .unwrap();
-        let output_state = connection.get_outputs().await.unwrap();
-        client
-            .publish(
-                &config.sway.outputs_state_topic,
-                QoS::AtLeastOnce,
-                true, // retain this to avoid errors on startup
-                serde_json::to_string(&output_state).unwrap(),
             )
             .await
             .unwrap();

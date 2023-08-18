@@ -75,9 +75,7 @@ impl MqttModuleConfig for PulseAudioConfig {
 #[serde(deny_unknown_fields)]
 pub struct SwayConfig {
     pub mqtt_name: String,
-    pub outputs_state_topic: String,
     pub outputs_command_topic: String,
-    pub outputs_attributes_topic: String,
     pub outputs_attributes_template: String,
     pub outputs_value_template: String,
     pub state_topic: String,

@@ -25,10 +25,8 @@ sway:
 
   # each output uses the same topics
   outputs_command_topic: "desktop/sway_outputs/command"
-  outputs_state_topic: "desktop/sway_outputs/state"
-  outputs_attributes_topic: "desktop/sway_outputs/state"
-  outputs_value_template: "{{ 'ON' if (value_json | selectattr('name', 'equalto', name) | first).dpms else 'OFF' }}"
-  outputs_attributes_template: "{{ value_json | selectattr('name', 'equalto', name) | first | tojson }}"
+  outputs_value_template: "{{ 'ON' if (value_json.outputs[name]).dpms else 'OFF' }}"
+  outputs_attributes_template: "{{ value_json.outputs[name] | tojson }}"
 
   state_topic: &sway_state "desktop/sway/state"
   command_topic: &sway_command "desktop/sway/command"
