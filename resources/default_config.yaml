@@ -25,6 +25,7 @@ switch_off_value: "OFF"
 
 sway:
   mqtt_name: "desktop_sway"
+  name_prefix: "sway_"
 
   state_topic: &sway_state "desktop/sway/state"
   command_topic: &sway_command "desktop/sway/command"

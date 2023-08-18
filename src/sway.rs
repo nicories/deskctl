@@ -56,7 +56,11 @@ async fn autodiscover(con: &mut Connection, config: &Config, client: &AsyncClien
             let cmd_off = SwayCommand::OutputPowerOff {
                 output_name: output.name.clone(),
             };
-            let name = format!("{}_power", output.name);
+            let name = format!(
+                "{prefix}{name}_power",
+                prefix = &config.sway.name_prefix,
+                name = &output.name
+            );
             let unique_id = name.clone();
             let switch = config.build_switch(
                 config.sway.command_topic.clone(),
@@ -96,14 +100,19 @@ async fn autodiscover(con: &mut Connection, config: &Config, client: &AsyncClien
             let cmd_off = SwayCommand::OutputDisable {
                 output_name: output.name.clone(),
             };
+            let name = format!(
+                "{prefix}{name}_enable",
+                prefix = &config.sway.name_prefix,
+                name = &output.name
+            );
             let switch = config.build_switch(
                 config.sway.command_topic.clone(),
                 config.sway.state_topic.clone(),
                 config.sway.availability.clone(),
-                format!("{}_enable", output.name),
+                name,
                 output.name.clone(),
                 format!(
-                    "{{{{ '{on}' if (value_json.outputs['{key}']).dpms == true else '{off}' }}}}",
+                    "{{{{ '{on}' if (value_json.outputs['{key}']).active == true else '{off}' }}}}",
                     on = &config.switch_on_value,
                     off = &config.switch_off_value,
                     key = &output.name,
