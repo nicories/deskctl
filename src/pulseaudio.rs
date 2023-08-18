@@ -53,7 +53,7 @@ pub async fn pulse_state(client: AsyncClient, config: &Config) -> Fallible<()> {
     }
     Ok(())
 }
-pub async fn pulse_run() -> Fallible<()> {
+pub async fn pulse_run() -> anyhow::Result<()> {
     log::info!("Starting pulseaudio main task");
     let config = Config::new();
     let pulse = Pulseaudio::new(CLIENT_NAME_CMD);
