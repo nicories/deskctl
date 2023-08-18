@@ -67,14 +67,10 @@ pub async fn pulse_run() -> Fallible<()> {
         pulse_state(client_state, &config_state).await.unwrap();
     });
     while let Ok(event) = eventloop.poll().await {
-        match event {
-            rumqttc::Event::Incoming(packet) => match packet {
-                rumqttc::Packet::Publish(p) => {
-                    // dbg!(p.topic);
-                }
-                _ => {}
-            },
-            rumqttc::Event::Outgoing(_) => {}
+        if let rumqttc::Event::Incoming(packet) = event {
+            if let rumqttc::Packet::Publish(p) = packet {
+                assert_eq!(p.topic, config.pulseaudio.command_topic);
+            }
         }
     }
 

@@ -171,25 +171,21 @@ pub async fn sway_run() -> Fallible<()> {
 
     // loop
     while let Ok(event) = eventloop.poll().await {
-        match event {
-            rumqttc::Event::Incoming(packet) => match packet {
-                rumqttc::Packet::Publish(p) => {
-                    assert_eq!(p.topic, config.sway.command_topic);
-                    let cmd: SwayCommand =
-                        serde_json::from_str(std::str::from_utf8(&p.payload).unwrap()).unwrap();
-                    match cmd {
-                        SwayCommand::Dpms { output_name, set } => {
-                            let state = if set { "on" } else { "off" };
-                            connection
-                                .run_command(format!("output {output_name} dpms {state}"))
-                                .await
-                                .unwrap();
-                        }
+        if let rumqttc::Event::Incoming(packet) = event {
+            if let rumqttc::Packet::Publish(p) = packet {
+                assert_eq!(p.topic, config.pulseaudio.command_topic);
+                let cmd: SwayCommand =
+                    serde_json::from_str(std::str::from_utf8(&p.payload).unwrap()).unwrap();
+                match cmd {
+                    SwayCommand::Dpms { output_name, set } => {
+                        let state = if set { "on" } else { "off" };
+                        connection
+                            .run_command(format!("output {output_name} dpms {state}"))
+                            .await
+                            .unwrap();
                     }
                 }
-                _ => {}
-            },
-            rumqttc::Event::Outgoing(_) => {}
+            }
         }
     }
     Ok(())
