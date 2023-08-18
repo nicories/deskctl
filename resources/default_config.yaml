@@ -20,13 +20,11 @@ homeassistant:
     identifiers:
       - "desktop-util"
 
+switch_on_value: "ON"
+switch_off_value: "OFF"
+
 sway:
   mqtt_name: "desktop_sway"
-
-  # each output uses the same topics
-  outputs_command_topic: "desktop/sway_outputs/command"
-  outputs_value_template: "{{ 'ON' if (value_json.outputs[name]).dpms else 'OFF' }}"
-  outputs_attributes_template: "{{ value_json.outputs[name] | tojson }}"
 
   state_topic: &sway_state "desktop/sway/state"
   command_topic: &sway_command "desktop/sway/command"

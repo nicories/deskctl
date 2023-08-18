@@ -75,9 +75,6 @@ impl MqttModuleConfig for PulseAudioConfig {
 #[serde(deny_unknown_fields)]
 pub struct SwayConfig {
     pub mqtt_name: String,
-    pub outputs_command_topic: String,
-    pub outputs_attributes_template: String,
-    pub outputs_value_template: String,
     pub state_topic: String,
     pub command_topic: String,
     pub availability: ComponentAvailability,
@@ -103,6 +100,8 @@ pub struct Config {
     pub homeassistant: HomeAssistantConfig,
     pub pulseaudio: PulseAudioConfig,
     pub sway: SwayConfig,
+    pub switch_on_value: String,
+    pub switch_off_value: String,
     // scripts: Vec<ScriptConfig>,
 }
 
@@ -147,13 +146,15 @@ impl Config {
         unique_id: String,
         value_template: String,
         json_attributes_template: String,
+        payload_on: String,
+        payload_off: String,
     ) -> ComponentSwitch {
         let common = ComponentCommon {
             name,
             object_id,
             unique_id,
             device: self.homeassistant.device.clone(),
-            availability
+            availability,
         };
         ComponentSwitch {
             command_topic,
@@ -162,6 +163,11 @@ impl Config {
             value_template,
             json_attributes_topic: state_topic,
             json_attributes_template,
+            payload_on,
+            payload_off,
+            state_on: self.switch_on_value.clone(),
+            state_off: self.switch_off_value.clone(),
+            optimistic: false,
         }
     }
     pub fn build_select(

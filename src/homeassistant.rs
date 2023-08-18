@@ -33,6 +33,11 @@ pub struct ComponentSwitch {
     pub value_template: String,
     pub json_attributes_topic: String,
     pub json_attributes_template: String,
+    pub payload_on: String,
+    pub payload_off: String,
+    pub state_on: String,
+    pub state_off: String,
+    pub optimistic: bool,
 }
 impl HomeAssistantComponent for ComponentSwitch {
     fn component_str(&self) -> &str {

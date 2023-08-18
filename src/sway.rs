@@ -31,32 +31,51 @@ async fn update_state(con: &mut Connection) -> SwayState {
         .iter()
         .map(|o| (o.name.clone(), o.clone()))
         .collect();
-    dbg!(&map);
     SwayState {
         outputs: map,
         current_workspace: current,
         workspaces: con.get_workspaces().await.unwrap(),
     }
 }
+
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+#[serde(tag = "type")]
+enum SwayCommand {
+    Dpms { output_name: String, set: bool },
+}
 async fn autodiscover(con: &mut Connection, config: &Config, client: &AsyncClient) -> Fallible<()> {
     for output in con.get_outputs().await.unwrap() {
-        let id = output.name.clone();
+        let cmd_on = SwayCommand::Dpms {
+            output_name: output.name.clone(),
+            set: true,
+        };
+        let cmd_off = SwayCommand::Dpms {
+            output_name: output.name.clone(),
+            set: false,
+        };
         let switch = config.build_switch(
-            config.sway.outputs_command_topic.clone(),
+            config.sway.command_topic.clone(),
             config.sway.state_topic.clone(),
             config.sway.availability.clone(),
             output.name.clone(),
             output.name.clone(),
             output.name.clone(),
-            config.sway.outputs_value_template.clone(),
-            config.sway.outputs_attributes_template.clone(),
+            format!(
+                "{{{{ '{on}' if (value_json.outputs[name]).dpms == true else '{off}' }}}}",
+                on = &config.switch_on_value,
+                off = &config.switch_off_value,
+            )
+            .to_owned(),
+            format!("{{{{ value_json.outputs[name] | tojson }}}}"),
+            serde_json::to_string(&cmd_on).unwrap(),
+            serde_json::to_string(&cmd_off).unwrap(),
         );
         let topic = config.get_autodiscover_topic(&switch);
         client
             .publish(
                 topic,
                 QoS::AtLeastOnce,
-                false,
+                true,
                 serde_json::to_string(&switch).unwrap(),
             )
             .await
@@ -87,6 +106,7 @@ async fn autodiscover(con: &mut Connection, config: &Config, client: &AsyncClien
 
 // outputs the current state of sway to the topic
 pub async fn sway_state(client: AsyncClient, config: Config) -> Fallible<()> {
+    log::info!("Starting sway state task");
     let subs = [
         EventType::Workspace,
         // EventType::Output, TODO: not implemented yet in swayipc
@@ -104,9 +124,6 @@ pub async fn sway_state(client: AsyncClient, config: Config) -> Fallible<()> {
     let mut events = Connection::new().await?.subscribe(subs).await?;
     let mut state = update_state(&mut connection).await;
     while let Some(event) = events.next().await {
-        if let Ok(e) = event {
-            dbg!(e);
-        }
         state = update_state(&mut connection).await;
         client
             .publish(
@@ -122,6 +139,7 @@ pub async fn sway_state(client: AsyncClient, config: Config) -> Fallible<()> {
 }
 
 pub async fn sway_run() -> Fallible<()> {
+    log::info!("Starting sway main task");
     let config = Config::new();
 
     let (client, mut eventloop) = config.get_client(&config.sway);
@@ -146,12 +164,28 @@ pub async fn sway_run() -> Fallible<()> {
         .await
         .unwrap();
 
+    client
+        .subscribe(&config.sway.command_topic, QoS::AtLeastOnce)
+        .await
+        .unwrap();
+
     // loop
     while let Ok(event) = eventloop.poll().await {
         match event {
             rumqttc::Event::Incoming(packet) => match packet {
                 rumqttc::Packet::Publish(p) => {
-                    dbg!(p.topic);
+                    assert_eq!(p.topic, config.sway.command_topic);
+                    let cmd: SwayCommand =
+                        serde_json::from_str(std::str::from_utf8(&p.payload).unwrap()).unwrap();
+                    match cmd {
+                        SwayCommand::Dpms { output_name, set } => {
+                            let state = if set { "on" } else { "off" };
+                            connection
+                                .run_command(format!("output {output_name} dpms {state}"))
+                                .await
+                                .unwrap();
+                        }
+                    }
                 }
                 _ => {}
             },
