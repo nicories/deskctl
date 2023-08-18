@@ -43,7 +43,6 @@ pub struct HomeAssistantConfig {
     pub autodiscover: bool,
     /// prefix used in homeassistant discovery, see https://www.home-assistant.io/integrations/mqtt/#discovery-options
     pub autodiscover_prefix: String,
-    // pub autodiscover_topic: String,
     pub device: HomeAssistantDevice,
 }
 #[derive(Deserialize, Serialize)]
@@ -103,7 +102,6 @@ impl MqttModuleConfig for SwayConfig {
 #[serde(deny_unknown_fields)]
 pub struct Config {
     pub app_name: String,
-    pub queue_size: usize,
     pub mqtt: MqttConfig,
     pub homeassistant: HomeAssistantConfig,
     pub pulseaudio: PulseAudioConfig,
@@ -139,7 +137,7 @@ impl Config {
         ))
         .to_owned();
 
-        AsyncClient::new(mqttoptions, self.queue_size)
+        AsyncClient::new(mqttoptions, 10)
     }
 
     pub fn build_switch(

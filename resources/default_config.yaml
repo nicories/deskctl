@@ -1,7 +1,5 @@
 app_name: "desktop"
 
-queue_size: 10 # size of the rx/tx buffer for each client
-
 mqtt:
   server_host: "localhost"
   server_port: 1883
