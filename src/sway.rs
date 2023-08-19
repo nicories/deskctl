@@ -6,7 +6,7 @@ use rumqttc::{self, AsyncClient as MqttClient, QoS};
 use std::collections::HashMap;
 use swayipc_async::{Connection, EventType};
 
-use crate::{config::Config, homeassistant::HomeAssistantComponent};
+use crate::{config::Config, homeassistant::Component};
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 struct SwayState {

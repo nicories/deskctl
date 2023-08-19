@@ -8,13 +8,13 @@ use rumqttc::QoS;
 use serde::Deserialize;
 use serde::Serialize;
 
-use crate::homeassistant::ComponentAvailability;
+use crate::homeassistant::Availability;
 use crate::homeassistant::ComponentCommon;
-use crate::homeassistant::ComponentSelect;
-use crate::homeassistant::ComponentSwitch;
-use crate::homeassistant::HomeAssistantComponent;
-use crate::homeassistant::HomeAssistantDevice;
-use crate::homeassistant::HomeAssistantDynamicComponent;
+use crate::homeassistant::Select;
+use crate::homeassistant::Switch;
+use crate::homeassistant::Component;
+use crate::homeassistant::Device;
+use crate::homeassistant::DynamicComponent;
 
 static CONFIG_STR: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -44,7 +44,7 @@ pub struct HomeAssistantConfig {
     pub autodiscover: bool,
     /// prefix used in homeassistant discovery, see https://www.home-assistant.io/integrations/mqtt/#discovery-options
     pub autodiscover_prefix: String,
-    pub device: HomeAssistantDevice,
+    pub device: Device,
 }
 #[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -57,7 +57,7 @@ pub struct PulseAudioConfig {
     pub mqtt_name: String,
     pub state_topic: String,
     pub command_topic: String,
-    pub availability: ComponentAvailability,
+    pub availability: Availability,
 }
 impl MqttModuleConfig for PulseAudioConfig {
     fn client_id(&self) -> &str {
@@ -79,7 +79,7 @@ pub struct SwayConfig {
     pub mqtt_name: String,
     pub state_topic: String,
     pub command_topic: String,
-    pub availability: ComponentAvailability,
+    pub availability: Availability,
 }
 impl MqttModuleConfig for SwayConfig {
     fn client_id(&self) -> &str {
@@ -142,21 +142,21 @@ impl Config {
         &self,
         command_topic: String,
         state_topic: String,
-        availability: ComponentAvailability,
+        availability: Availability,
         name: String,
         unique_id: String,
         value_template: String,
         json_attributes_template: String,
         payload_on: String,
         payload_off: String,
-    ) -> ComponentSwitch {
+    ) -> Switch {
         let common = ComponentCommon {
             name,
             unique_id,
             device: self.homeassistant.device.clone(),
             availability,
         };
-        ComponentSwitch {
+        Switch {
             command_topic,
             state_topic: state_topic.clone(),
             common,
@@ -175,19 +175,19 @@ impl Config {
         options: Vec<String>,
         command_topic: String,
         state_topic: String,
-        availability: ComponentAvailability,
+        availability: Availability,
         name: String,
         unique_id: String,
         value_template: String,
         json_attributes_template: String,
-    ) -> ComponentSelect {
+    ) -> Select {
         let common = ComponentCommon {
             name,
             unique_id,
             device: self.homeassistant.device.clone(),
             availability,
         };
-        ComponentSelect {
+        Select {
             command_topic,
             state_topic: state_topic.clone(),
             common,
@@ -197,15 +197,15 @@ impl Config {
             json_attributes_topic: state_topic,
         }
     }
-    pub fn get_autodiscover_topic(&self, component: &HomeAssistantDynamicComponent) -> String {
+    pub fn get_autodiscover_topic(&self, component: &DynamicComponent) -> String {
         match component {
-            HomeAssistantDynamicComponent::Switch(switch) => {
+            DynamicComponent::Switch(switch) => {
                 let component_str = switch.component_str();
                 let prefix = self.homeassistant.autodiscover_prefix.clone();
                 let object_id = &switch.common.unique_id;
                 return format!("{prefix}/{component_str}/{object_id}/config");
             }
-            HomeAssistantDynamicComponent::Select(select) => {
+            DynamicComponent::Select(select) => {
                 let component_str = select.component_str();
                 let prefix = self.homeassistant.autodiscover_prefix.clone();
                 let object_id = &select.common.unique_id;
@@ -216,14 +216,14 @@ impl Config {
     pub async fn publish_autodiscover(
         &self,
         client: &AsyncClient,
-        component: &HomeAssistantDynamicComponent,
+        component: &DynamicComponent,
     ) {
         let topic = self.get_autodiscover_topic(&component);
         let payload = match component {
-            HomeAssistantDynamicComponent::Switch(switch) => {
+            DynamicComponent::Switch(switch) => {
                 serde_json::to_string(&switch).unwrap()
             }
-            HomeAssistantDynamicComponent::Select(select) => {
+            DynamicComponent::Select(select) => {
                 serde_json::to_string(&select).unwrap()
             }
         };

@@ -2,34 +2,34 @@
 use serde::Deserialize;
 use serde::Serialize;
 
-pub enum HomeAssistantDynamicComponent {
-    Switch(ComponentSwitch),
-    Select(ComponentSelect),
+pub enum DynamicComponent {
+    Switch(Switch),
+    Select(Select),
 }
-pub trait HomeAssistantComponent {
+pub trait Component {
     fn component_str(&self) -> &str;
     fn object_id(&self) -> &str;
-    fn to_dynamic_component(self) -> HomeAssistantDynamicComponent;
+    fn to_dynamic_component(self) -> DynamicComponent;
 }
 
 #[derive(Deserialize, Serialize, Clone)]
 pub struct ComponentCommon {
     pub name: String,
     pub unique_id: String,
-    pub device: HomeAssistantDevice,
-    pub availability: ComponentAvailability,
+    pub device: Device,
+    pub availability: Availability,
 }
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(deny_unknown_fields)]
-pub struct ComponentAvailability {
+pub struct Availability {
     pub payload_available: String,
     pub payload_not_available: String,
     pub topic: String,
 }
 
 #[derive(Serialize, Clone)]
-pub struct ComponentSwitch {
+pub struct Switch {
     pub command_topic: String,
     pub state_topic: String,
     #[serde(flatten)]
@@ -43,7 +43,7 @@ pub struct ComponentSwitch {
     pub state_off: String,
     pub optimistic: bool,
 }
-impl HomeAssistantComponent for ComponentSwitch {
+impl Component for Switch {
     fn component_str(&self) -> &str {
         "switch"
     }
@@ -52,20 +52,20 @@ impl HomeAssistantComponent for ComponentSwitch {
         &self.common.unique_id
     }
 
-    fn to_dynamic_component(self) -> HomeAssistantDynamicComponent {
-        HomeAssistantDynamicComponent::Switch(self)
+    fn to_dynamic_component(self) -> DynamicComponent {
+        DynamicComponent::Switch(self)
     }
 }
 
 #[derive(Deserialize, Serialize, Clone)]
 #[serde(deny_unknown_fields)]
-pub struct HomeAssistantDevice {
+pub struct Device {
     name: String,
     identifiers: Vec<String>,
 }
 
 #[derive(Serialize, Clone)]
-pub struct ComponentSelect {
+pub struct Select {
     pub command_topic: String,
     pub state_topic: String,
     #[serde(flatten)]
@@ -76,14 +76,14 @@ pub struct ComponentSelect {
     pub json_attributes_template: String,
 }
 
-impl HomeAssistantComponent for ComponentSelect {
+impl Component for Select {
     fn component_str(&self) -> &str {
         "select"
     }
     fn object_id(&self) -> &str {
         &self.common.unique_id
     }
-    fn to_dynamic_component(self) -> HomeAssistantDynamicComponent {
-        HomeAssistantDynamicComponent::Select(self)
+    fn to_dynamic_component(self) -> DynamicComponent {
+        DynamicComponent::Select(self)
     }
 }
