@@ -2,9 +2,14 @@
 use serde::Deserialize;
 use serde::Serialize;
 
+pub enum HomeAssistantDynamicComponent {
+    Switch(ComponentSwitch),
+    Select(ComponentSelect),
+}
 pub trait HomeAssistantComponent {
     fn component_str(&self) -> &str;
     fn object_id(&self) -> &str;
+    fn to_dynamic_component(self) -> HomeAssistantDynamicComponent;
 }
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -46,6 +51,10 @@ impl HomeAssistantComponent for ComponentSwitch {
     fn object_id(&self) -> &str {
         &self.common.unique_id
     }
+
+    fn to_dynamic_component(self) -> HomeAssistantDynamicComponent {
+        HomeAssistantDynamicComponent::Switch(self)
+    }
 }
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -73,5 +82,8 @@ impl HomeAssistantComponent for ComponentSelect {
     }
     fn object_id(&self) -> &str {
         &self.common.unique_id
+    }
+    fn to_dynamic_component(self) -> HomeAssistantDynamicComponent {
+        HomeAssistantDynamicComponent::Select(self)
     }
 }

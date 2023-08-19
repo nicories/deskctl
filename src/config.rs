@@ -14,6 +14,7 @@ use crate::homeassistant::ComponentSelect;
 use crate::homeassistant::ComponentSwitch;
 use crate::homeassistant::HomeAssistantComponent;
 use crate::homeassistant::HomeAssistantDevice;
+use crate::homeassistant::HomeAssistantDynamicComponent;
 
 static CONFIG_STR: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -196,11 +197,42 @@ impl Config {
             json_attributes_topic: state_topic,
         }
     }
-    pub fn get_autodiscover_topic(&self, component: &dyn HomeAssistantComponent) -> String {
-        let component_str = component.component_str();
-        let prefix = self.homeassistant.autodiscover_prefix.clone();
-        let object_id = component.object_id();
-        format!("{prefix}/{component_str}/{object_id}/config")
+    pub fn get_autodiscover_topic(&self, component: &HomeAssistantDynamicComponent) -> String {
+        match component {
+            HomeAssistantDynamicComponent::Switch(switch) => {
+                let component_str = switch.component_str();
+                let prefix = self.homeassistant.autodiscover_prefix.clone();
+                let object_id = &switch.common.unique_id;
+                return format!("{prefix}/{component_str}/{object_id}/config");
+            }
+            HomeAssistantDynamicComponent::Select(select) => {
+                let component_str = select.component_str();
+                let prefix = self.homeassistant.autodiscover_prefix.clone();
+                let object_id = &select.common.unique_id;
+                return format!("{prefix}/{component_str}/{object_id}/config");
+            }
+        }
+    }
+    pub async fn publish_autodiscover(
+        &self,
+        client: &AsyncClient,
+        component: &HomeAssistantDynamicComponent,
+    ) {
+        let topic = self.get_autodiscover_topic(&component);
+        let payload = match component {
+            HomeAssistantDynamicComponent::Switch(switch) => {
+                serde_json::to_string(&switch).unwrap()
+            }
+            HomeAssistantDynamicComponent::Select(select) => {
+                serde_json::to_string(&select).unwrap()
+            }
+        };
+
+        log::debug!("Publishing autodiscover to topic: {}", &topic);
+        client
+            .publish(topic, QoS::AtLeastOnce, true, payload)
+            .await
+            .expect("publish autodiscover");
     }
 }
 

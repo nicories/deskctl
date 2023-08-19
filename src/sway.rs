@@ -6,7 +6,7 @@ use rumqttc::{self, AsyncClient as MqttClient, QoS};
 use std::collections::HashMap;
 use swayipc_async::{Connection, EventType};
 
-use crate::config::Config;
+use crate::{config::Config, homeassistant::HomeAssistantComponent};
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 struct SwayState {
@@ -81,16 +81,9 @@ async fn autodiscover(
                 serde_json::to_string(&cmd_on).unwrap(),
                 serde_json::to_string(&cmd_off).unwrap(),
             );
-            let topic = config.get_autodiscover_topic(&switch);
-            client
-                .publish(
-                    topic,
-                    QoS::AtLeastOnce,
-                    true,
-                    serde_json::to_string(&switch).unwrap(),
-                )
-                .await
-                .unwrap();
+            config
+                .publish_autodiscover(client, &switch.to_dynamic_component())
+                .await;
         }
         {
             // enable/disable
@@ -124,16 +117,9 @@ async fn autodiscover(
                 serde_json::to_string(&cmd_on).unwrap(),
                 serde_json::to_string(&cmd_off).unwrap(),
             );
-            let topic = config.get_autodiscover_topic(&switch);
-            client
-                .publish(
-                    topic,
-                    QoS::AtLeastOnce,
-                    true,
-                    serde_json::to_string(&switch).unwrap(),
-                )
-                .await
-                .unwrap();
+            config
+                .publish_autodiscover(client, &switch.to_dynamic_component())
+                .await;
         }
     }
     {
