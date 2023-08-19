@@ -28,17 +28,30 @@ pub async fn pulse_state(client: AsyncClient, config: &Config) -> Fallible<()> {
     let stream = pulse.subscribe().await;
     pin_mut!(stream);
     while let Some(s) = stream.next().await {
-        if s.on == "sink" {
+        if matches!(s.target, pulsectl::EventTarget::Sink) {
             log::debug!("Got pulseaudio sink event: {:?}", &s);
-            let sinks = pulse.list_sinks().await.unwrap();
-            let current_sink = pulse.get_default_sink().await.unwrap().name;
-            let current_volume = pulse.get_default_volume().await.unwrap().value_percent;
+            let Ok(sinks) = pulse.list_sinks().await else {
+                log::error!("Failed to get sinks");
+                continue;
+            };
+            let Ok(current_sink) = pulse.get_default_sink().await else {
+                log::error!("Failed to get default sink");
+                continue;
+            };
+            let Ok(current_volume) = pulse.get_default_volume().await else {
+                log::error!("Failed to get default volume");
+                continue;
+            };
             let state = PulseState {
-                current_sink,
-                current_volume,
+                current_sink: current_sink.name,
+                current_volume: current_volume.value_percent,
                 sinks,
             };
-            log::debug!("Publishing new state to {}", &config.pulseaudio.state_topic);
+            log::debug!(
+                "Publishing new state {:?} to {}",
+                &state,
+                &config.pulseaudio.state_topic
+            );
             client
                 .publish(
                     &config.pulseaudio.state_topic,
@@ -66,6 +79,7 @@ pub async fn pulse_run() -> anyhow::Result<()> {
     task::spawn(async move {
         pulse_state(client_state, &config_state).await.unwrap();
     });
+    log::info!("Starting pulseaudio command loop");
     while let Ok(event) = eventloop.poll().await {
         if let rumqttc::Event::Incoming(packet) = event {
             if let rumqttc::Packet::Publish(p) = packet {

@@ -1,12 +1,22 @@
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, string::FromUtf8Error};
 
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Deserialize, Debug)]
+pub enum EventType {
+    Change,
+    Remove,
+    Unknown,
+}
+#[derive(Deserialize, Debug)]
+pub enum EventTarget {
+    Client,
+    Sink,
+    Unknown,
+}
+#[derive(Deserialize, Debug)]
 pub struct PulseEvent {
-    pub index: u32,
-    pub event: String,
-    pub on: String,
+    pub event_type: EventType,
+    pub target: EventTarget,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

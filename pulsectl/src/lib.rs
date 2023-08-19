@@ -30,11 +30,23 @@ impl Pulseaudio {
         let mut reader = BufReader::new(child.stdout.take().unwrap());
         let s = stream! {
             loop {
-            let mut buf = Vec::new();
-            let _ = reader.read_until("}".as_bytes()[0], &mut buf).await;
-            let s = String::from_utf8(buf).unwrap();
-            // dbg!(s);
-               let event: PulseEvent = serde_json::from_str(&s).unwrap();
+                let mut buf = Vec::new();
+                let _ = reader.read_until("}".as_bytes()[0], &mut buf).await;
+                let s = String::from_utf8(buf).unwrap();
+                let data: serde_json::Value = serde_json::from_str(&s).unwrap();
+                let event_type = if data["event"] == "change" { EventType::Change }
+                    else if data["event"] == "remove" { EventType::Remove }
+                    else {EventType::Unknown};
+
+                let target = if data["on"] == "sink" { EventTarget::Sink }
+                    else if data["on"] == "client" { EventTarget::Client }
+                    else { EventTarget::Unknown };
+                let event = PulseEvent {
+                    event_type,
+                    target,
+                };
+
+
             yield event;
             }
         };
@@ -81,11 +93,7 @@ impl Pulseaudio {
     }
     pub async fn list_sinks(&self) -> Result<Vec<SinkInfo>, Error> {
         let sinks: Vec<SinkInfo> = self.run_command_with_output("list sinks").await?;
-        if sinks.len() == 0 {
-            Err(Error::PulseError("No sinks available.".to_owned()))
-        } else {
-            Ok(sinks)
-        }
+        Ok(sinks)
     }
     pub async fn find_sink_by_name(&self, name: &str) -> Option<SinkInfo> {
         let sinks = self.list_sinks().await.ok()?;
