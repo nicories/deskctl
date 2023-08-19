@@ -176,7 +176,6 @@ impl Config {
         state_topic: String,
         availability: ComponentAvailability,
         name: String,
-        object_id: String,
         unique_id: String,
         value_template: String,
         json_attributes_template: String,
@@ -205,11 +204,12 @@ impl Config {
     }
 }
 
+#[cfg(test)]
 mod test {
     use super::*;
 
     #[test]
     fn config_can_construct() {
-        let _ = Config::new();
+        let _ = super::Config::new();
     }
 }

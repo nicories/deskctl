@@ -1,11 +1,7 @@
-use swayipc::{Output, Workspace};
-use tokio::{task, time};
+use tokio::task;
 
 use futures_util::{pin_mut, stream::StreamExt};
-use rumqttc::{self, AsyncClient, LastWill, MqttOptions, QoS};
-use std::error::Error;
-use std::time::Duration;
-use swayipc_async::{Connection, EventType, Fallible};
+use rumqttc::{self, AsyncClient, QoS};
 
 use pulsectl::Pulseaudio;
 
@@ -21,7 +17,7 @@ struct PulseState {
     current_volume: String,
 }
 
-pub async fn pulse_state(client: AsyncClient, config: &Config) -> Fallible<()> {
+pub async fn pulse_state(client: AsyncClient, config: &Config) -> anyhow::Result<()> {
     log::info!("Starting pulseaudio state task");
 
     let pulse = Pulseaudio::new(CLIENT_NAME_STATE);
@@ -81,10 +77,8 @@ pub async fn pulse_run() -> anyhow::Result<()> {
     });
     log::info!("Starting pulseaudio command loop");
     while let Ok(event) = eventloop.poll().await {
-        if let rumqttc::Event::Incoming(packet) = event {
-            if let rumqttc::Packet::Publish(p) = packet {
-                assert_eq!(p.topic, config.pulseaudio.command_topic);
-            }
+        if let rumqttc::Event::Incoming(rumqttc::Packet::Publish(packet)) = event {
+            assert_eq!(packet.topic, config.pulseaudio.command_topic);
         }
     }
 

@@ -1,16 +1,12 @@
 use swayipc::{Output, Workspace};
-use tokio::{task, time};
+use tokio::task;
 
 use futures_util::stream::StreamExt;
-use rumqttc::{self, AsyncClient, LastWill, MqttOptions, QoS};
-use std::time::Duration;
-use std::{collections::HashMap, error::Error};
-use swayipc_async::{Connection, EventType, Fallible};
+use rumqttc::{self, AsyncClient as MqttClient, QoS};
+use std::collections::HashMap;
+use swayipc_async::{Connection, EventType};
 
 use crate::config::Config;
-
-struct SwayModule {}
-impl SwayModule {}
 
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 struct SwayState {
@@ -46,7 +42,11 @@ enum SwayCommand {
     OutputEnable { output_name: String },
     OutputDisable { output_name: String },
 }
-async fn autodiscover(con: &mut Connection, config: &Config, client: &AsyncClient) -> Fallible<()> {
+async fn autodiscover(
+    con: &mut Connection,
+    config: &Config,
+    client: &MqttClient,
+) -> anyhow::Result<()> {
     for output in con.get_outputs().await.unwrap() {
         {
             // dpms/power
@@ -160,7 +160,7 @@ async fn autodiscover(con: &mut Connection, config: &Config, client: &AsyncClien
 }
 
 // outputs the current state of sway to the topic
-pub async fn sway_state_task(client: AsyncClient, config: Config) -> anyhow::Result<()> {
+pub async fn sway_state_task(client: MqttClient, config: Config) -> anyhow::Result<()> {
     log::info!("Starting sway state task");
     let subs = [
         EventType::Workspace,
@@ -177,10 +177,9 @@ pub async fn sway_state_task(client: AsyncClient, config: Config) -> anyhow::Res
     let mut connection = Connection::new().await?;
 
     let mut events = Connection::new().await?.subscribe(subs).await?;
-    let mut state = update_state(&mut connection).await;
     log::info!("Starting sway state loop");
-    while let Some(event) = events.next().await {
-        state = update_state(&mut connection).await;
+    while let Some(_event) = events.next().await {
+        let state = update_state(&mut connection).await;
         client
             .publish(
                 &config.sway.state_topic,
@@ -226,40 +225,38 @@ pub async fn sway_run() -> anyhow::Result<()> {
 
     // loop
     while let Ok(event) = eventloop.poll().await {
-        if let rumqttc::Event::Incoming(packet) = event {
-            if let rumqttc::Packet::Publish(p) = packet {
-                assert_eq!(p.topic, config.sway.command_topic);
-                let Ok(string) = std::str::from_utf8(&p.payload) else {
-                    log::error!("Received invalid utf8 string from mqtt");
-                    continue;
-                };
-                let Ok(sway_command) = serde_json::from_str(string) else {
-                    log::error!("Could not parse json from mqtt {:?}", &string);
-                    continue;
-                };
-                let cmd = match sway_command {
-                    SwayCommand::OutputPowerOn { output_name } => {
-                        format!("output {output_name} power on")
-                    }
-                    SwayCommand::OutputPowerOff { output_name } => {
-                        format!("output {output_name} power off")
-                    }
-                    SwayCommand::OutputEnable { output_name } => {
-                        format!("output {output_name} enable")
-                    }
-                    SwayCommand::OutputDisable { output_name } => {
-                        format!("output {output_name} disable")
-                    }
-                };
-                log::debug!("Running sway command: {}", &cmd);
-                let Ok(output) = connection.run_command(&cmd).await else {
-                    log::error!("Could not run command: {}", &cmd);
-                    continue;
-                };
-                for result in output {
-                    if result.is_err() {
-                        log::error!("Error running command: {}", &cmd);
-                    }
+        if let rumqttc::Event::Incoming(rumqttc::Packet::Publish(message)) = event {
+            assert_eq!(message.topic, config.sway.command_topic);
+            let Ok(string) = std::str::from_utf8(&message.payload) else {
+                log::error!("Received invalid utf8 string from mqtt");
+                continue;
+            };
+            let Ok(sway_command) = serde_json::from_str(string) else {
+                log::error!("Could not parse json from mqtt {:?}", &string);
+                continue;
+            };
+            let cmd = match sway_command {
+                SwayCommand::OutputPowerOn { output_name } => {
+                    format!("output {output_name} power on")
+                }
+                SwayCommand::OutputPowerOff { output_name } => {
+                    format!("output {output_name} power off")
+                }
+                SwayCommand::OutputEnable { output_name } => {
+                    format!("output {output_name} enable")
+                }
+                SwayCommand::OutputDisable { output_name } => {
+                    format!("output {output_name} disable")
+                }
+            };
+            log::debug!("Running sway command: {}", &cmd);
+            let Ok(output) = connection.run_command(&cmd).await else {
+                log::error!("Could not run command: {}", &cmd);
+                continue;
+            };
+            for result in output {
+                if result.is_err() {
+                    log::error!("Error running command: {}", &cmd);
                 }
             }
         }

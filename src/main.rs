@@ -1,11 +1,5 @@
 use log::log_enabled;
-use tokio::{join, task, time};
-
-use futures_util::stream::StreamExt;
-use rumqttc::{self, AsyncClient, MqttOptions, QoS};
-use std::error::Error;
-use std::time::Duration;
-use swayipc_async::{Connection, EventType, Fallible};
+use tokio::task;
 
 mod config;
 mod homeassistant;

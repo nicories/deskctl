@@ -1,10 +1,6 @@
-use std::{collections::HashMap, string::FromUtf8Error, task::Poll, time::Duration};
-
 use async_process::{Command, Stdio};
 use async_stream::stream;
 use futures_lite::{io::BufReader, prelude::*};
-use futures_util::pin_mut;
-use serde::{Deserialize, Serialize};
 use tokio_stream::Stream;
 
 mod types;
@@ -153,6 +149,7 @@ impl Pulseaudio {
     }
 }
 
+#[cfg(test)]
 mod test {
     use std::time::Duration;
 
