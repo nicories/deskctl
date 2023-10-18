@@ -9,12 +9,11 @@ use serde::Deserialize;
 use serde::Serialize;
 
 use crate::homeassistant::Availability;
+use crate::homeassistant::Component;
 use crate::homeassistant::ComponentCommon;
+use crate::homeassistant::Device;
 use crate::homeassistant::Select;
 use crate::homeassistant::Switch;
-use crate::homeassistant::Component;
-use crate::homeassistant::Device;
-use crate::homeassistant::DynamicComponent;
 
 static CONFIG_STR: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -197,38 +196,20 @@ impl Config {
             json_attributes_topic: state_topic,
         }
     }
-    pub fn get_autodiscover_topic(&self, component: &DynamicComponent) -> String {
-        match component {
-            DynamicComponent::Switch(switch) => {
-                let component_str = switch.component_str();
-                let prefix = self.homeassistant.autodiscover_prefix.clone();
-                let object_id = &switch.common.unique_id;
-                return format!("{prefix}/{component_str}/{object_id}/config");
-            }
-            DynamicComponent::Select(select) => {
-                let component_str = select.component_str();
-                let prefix = self.homeassistant.autodiscover_prefix.clone();
-                let object_id = &select.common.unique_id;
-                return format!("{prefix}/{component_str}/{object_id}/config");
-            }
-        }
+    pub fn get_autodiscover_topic(&self, component: &impl Component) -> String {
+        let component_str = component.component_str();
+        let prefix = self.homeassistant.autodiscover_prefix.clone();
+        let object_id = component.object_id();
+        return format!("{prefix}/{component_str}/{object_id}/config");
     }
-    pub async fn publish_autodiscover(
-        &self,
-        client: &AsyncClient,
-        component: &DynamicComponent,
-    ) {
-        let topic = self.get_autodiscover_topic(&component);
-        let payload = match component {
-            DynamicComponent::Switch(switch) => {
-                serde_json::to_string(&switch).unwrap()
-            }
-            DynamicComponent::Select(select) => {
-                serde_json::to_string(&select).unwrap()
-            }
-        };
-
-        log::debug!("Publishing autodiscover to topic: {}", &topic);
+    pub async fn publish_autodiscover(&self, client: &AsyncClient, component: &impl Component) {
+        let topic = self.get_autodiscover_topic(component);
+        let payload = component.to_json();
+        log::debug!(
+            "Publishing autodiscover. topic: {}, payload: {}",
+            &topic,
+            &payload
+        );
         client
             .publish(topic, QoS::AtLeastOnce, true, payload)
             .await

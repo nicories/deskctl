@@ -2,14 +2,10 @@
 use serde::Deserialize;
 use serde::Serialize;
 
-pub enum DynamicComponent {
-    Switch(Switch),
-    Select(Select),
-}
 pub trait Component {
     fn component_str(&self) -> &str;
     fn object_id(&self) -> &str;
-    fn to_dynamic_component(self) -> DynamicComponent;
+    fn to_json(&self) -> String;
 }
 
 #[derive(Deserialize, Serialize, Clone)]
@@ -52,8 +48,8 @@ impl Component for Switch {
         &self.common.unique_id
     }
 
-    fn to_dynamic_component(self) -> DynamicComponent {
-        DynamicComponent::Switch(self)
+    fn to_json(&self) -> String {
+        serde_json::to_string(self).unwrap()
     }
 }
 
@@ -83,7 +79,8 @@ impl Component for Select {
     fn object_id(&self) -> &str {
         &self.common.unique_id
     }
-    fn to_dynamic_component(self) -> DynamicComponent {
-        DynamicComponent::Select(self)
+
+    fn to_json(&self) -> String {
+        serde_json::to_string(self).unwrap()
     }
 }

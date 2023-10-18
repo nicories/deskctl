@@ -82,7 +82,7 @@ async fn autodiscover(
                 serde_json::to_string(&cmd_off).unwrap(),
             );
             config
-                .publish_autodiscover(client, &switch.to_dynamic_component())
+                .publish_autodiscover(client, &switch)
                 .await;
         }
         {
@@ -118,7 +118,7 @@ async fn autodiscover(
                 serde_json::to_string(&cmd_off).unwrap(),
             );
             config
-                .publish_autodiscover(client, &switch.to_dynamic_component())
+                .publish_autodiscover(client, &switch)
                 .await;
         }
     }
