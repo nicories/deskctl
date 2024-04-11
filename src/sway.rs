@@ -1,4 +1,4 @@
-use swayipc::{Output, Workspace};
+use swayipc_async::{Output, Workspace};
 use tokio::task;
 
 use futures_util::stream::StreamExt;
@@ -80,46 +80,9 @@ async fn autodiscover(
                 ),
                 serde_json::to_string(&cmd_on).unwrap(),
                 serde_json::to_string(&cmd_off).unwrap(),
+                format!("desktop/sway_display/{}", &output.name).to_owned(),
             );
-            config
-                .publish_autodiscover(client, &switch)
-                .await;
-        }
-        {
-            // enable/disable
-            let cmd_on = SwayCommand::OutputEnable {
-                output_name: output.name.clone(),
-            };
-            let cmd_off = SwayCommand::OutputDisable {
-                output_name: output.name.clone(),
-            };
-            let name = format!(
-                "{prefix}{name}_enable",
-                prefix = &config.sway.name_prefix,
-                name = &output.name
-            );
-            let switch = config.build_switch(
-                config.sway.command_topic.clone(),
-                config.sway.state_topic.clone(),
-                config.sway.availability.clone(),
-                name,
-                output.name.clone(),
-                format!(
-                    "{{{{ '{on}' if (value_json.outputs['{key}']).active == true else '{off}' }}}}",
-                    on = &config.switch_on_value,
-                    off = &config.switch_off_value,
-                    key = &output.name,
-                ),
-                format!(
-                    "{{{{ value_json.outputs['{key}'] | tojson }}}}",
-                    key = &output.name
-                ),
-                serde_json::to_string(&cmd_on).unwrap(),
-                serde_json::to_string(&cmd_off).unwrap(),
-            );
-            config
-                .publish_autodiscover(client, &switch)
-                .await;
+            config.publish_autodiscover(client, &switch).await;
         }
     }
     {
@@ -150,7 +113,7 @@ pub async fn sway_state_task(client: MqttClient, config: Config) -> anyhow::Resu
     log::info!("Starting sway state task");
     let subs = [
         EventType::Workspace,
-        // EventType::Output, TODO: not implemented yet in swayipc
+        EventType::Output,
         EventType::Window,
         // EventType::Input,
         // EventType::Tick,

@@ -120,7 +120,8 @@ impl Config {
             self.mqtt.server_port,
             mqtt_config.client_id()
         );
-        let mqttoptions = MqttOptions::new(
+
+        let mut mqttoptions = MqttOptions::new(
             mqtt_config.client_id(),
             &self.mqtt.server_host,
             self.mqtt.server_port,
@@ -133,6 +134,9 @@ impl Config {
             true, // retain so that homeassistant knows this entity is offline even after restarting
         ))
         .to_owned();
+        if let (Some(user), Some(password)) = (&self.mqtt.user, &self.mqtt.password) {
+            mqttoptions.set_credentials(user, password);
+        }
 
         AsyncClient::new(mqttoptions, 10)
     }
@@ -148,6 +152,7 @@ impl Config {
         json_attributes_template: String,
         payload_on: String,
         payload_off: String,
+        json_attributes_topic: String,
     ) -> Switch {
         let common = ComponentCommon {
             name,
@@ -160,7 +165,7 @@ impl Config {
             state_topic: state_topic.clone(),
             common,
             value_template,
-            json_attributes_topic: state_topic,
+            json_attributes_topic,
             json_attributes_template,
             payload_on,
             payload_off,

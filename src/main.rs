@@ -19,7 +19,7 @@ async fn main() -> anyhow::Result<()> {
         log::info!("Error logging enabled");
     }
     let sway_handle = task::spawn(async move {
-        sway::sway_run().await.unwrap();
+        sway::sway_run().await.expect("sway_run");
     });
     let pulse_handle = task::spawn(async move {
         pulseaudio::pulse_run().await.unwrap();
