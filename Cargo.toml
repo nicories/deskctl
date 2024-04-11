@@ -6,13 +6,13 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-pulsectl ={ path = "pulsectl", version = "*"}
+pulsectl = { path = "pulsectl", version = "*" }
 futures-util = "0.3.28"
 rumqttc = "0.22.0"
 serde = { version = "1.0", features = ["derive"] }
-swayipc = "3.0.1"
-swayipc-async = "2.0.1"
-tokio = {version ="1.31.0", features = ["full"]}
+swayipc-async = { git = "https://github.com/JayceFayne/swayipc-rs" }
+swayipc-types = { git = "https://github.com/JayceFayne/swayipc-rs" }
+tokio = { version = "1.31.0", features = ["full"] }
 serde_json = "1.0"
 gethostname = "0.4.1"
 clap = { version = "4.0.29", features = ["derive"] }
@@ -23,3 +23,7 @@ ddc = "0.2.2"
 ddc-hi = "0.4.1"
 serde_yaml = "0.9.25"
 anyhow = "1.0.75"
+ddc-i2c = { version = "*", features = ["i2c-linux", "with-linux-enumerate"]}
+wayland-protocols-wlr = "0.2.0"
+smithay-client-toolkit = "0.18.0"
+wayland-client = "0.31.1"
